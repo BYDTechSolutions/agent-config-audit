@@ -30,5 +30,10 @@ export function splitInventory(inv: Surface[]): { runs: Surface[]; loads: Surfac
 /** Printed when there are no findings. Never "safe", never "secure". */
 export const CLEAN = 'No findings for the rules in this version; this is not a malware check.';
 
+/** The closing line for a report with no findings: says when a baseline hid some. */
+export function cleanLine(suppressed: number): string {
+  return suppressed ? `No findings outside the baseline (${suppressed} hidden) for the rules in this version; this is not a malware check.` : CLEAN;
+}
+
 /** Printed under every report that has findings. */
 export const NOT_A_VERDICT = 'Findings are leads for human review, not a verdict. This is not a malware check.';

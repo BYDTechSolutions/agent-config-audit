@@ -142,7 +142,7 @@ export function mcpChecks(model: Model, emit: Emit): void {
         title: `${label} runs ${code(spec.spec, 50)} without a pinned version`,
         observed: `\`${spec.launcher}${spec.autoYes ? ' -y' : ''}\` installs ${code(spec.spec, 80)} at launch; command: ${code(launch, 140)}`,
         evidence: `${s.name}:${spec.spec}`,
-        fix: `Pin an exact version, e.g. ${code(`${spec.spec.replace(/@[^@/]*$/, '')}${spec.launcher === 'pipx run' ? '==1.2.3' : '@1.2.3'}`, 60)}, and update it on purpose.`,
+        fix: `Pin the exact version you reviewed, e.g. ${code(`${spec.spec.replace(/(.)@[^@/]*$/, '$1').replace(/==.*$/, '')}${spec.launcher === 'pipx run' ? '==X.Y.Z' : '@X.Y.Z'}`, 60)}, and update it on purpose.`,
         ...(spec.launcher.startsWith('uvx') ? { source: { title: 'uv: Using tools (uvx)', url: 'https://docs.astral.sh/uv/guides/tools/' } } : {}),
       });
     }

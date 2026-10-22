@@ -7,7 +7,7 @@
 import { AST_VERSION } from '../facts/taxonomy.js';
 import { RULE_LIST } from '../rules.js';
 import type { Report, Rule, Severity } from '../types.js';
-import { CLEAN, NOT_A_VERDICT } from './common.js';
+import { cleanLine, NOT_A_VERDICT } from './common.js';
 
 /** GitHub: over 9.0 critical, 7.0–8.9 high, 4.0–6.9 medium, 0.1–3.9 low. */
 export const SECURITY_SEVERITY: Record<Exclude<Severity, 'none'>, string> = { critical: '9.3', high: '8.0', medium: '5.5', low: '3.0' };
@@ -82,7 +82,7 @@ export function formatSarif(report: Report): string {
         results,
         properties: {
           taxonomy: AST_VERSION,
-          statement: report.findings.length ? NOT_A_VERDICT : CLEAN,
+          statement: report.findings.length ? NOT_A_VERDICT : cleanLine(report.suppressed),
           notAssessed: [...report.coverage.ast.filter((a) => a.status === 'not-assessed').map((a) => `${a.id} ${a.title}: ${a.how}`), ...report.coverage.notAssessed.map((n) => `${n.what}: ${n.why}`)],
           unread: report.coverage.unread,
         },

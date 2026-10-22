@@ -1,5 +1,5 @@
 import { FAMILY_NAMES, PRIORITY_NAMES, type Report } from '../types.js';
-import { byPriority, CLEAN, counts, location, NOT_A_VERDICT } from './common.js';
+import { byPriority, cleanLine, counts, location, NOT_A_VERDICT } from './common.js';
 
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
@@ -9,7 +9,7 @@ export function formatMarkdown(report: Report): string {
   const out: string[] = [];
   out.push(`# Agent config audit: \`${report.root}\``, '');
   out.push(`${report.stats.filesRead} agent files read, ${report.inventory.length} surfaces (${report.inventory.filter((s) => s.runs).length} run code). **${c['fix-now']} fix now**, **${c['should-fix']} should fix**, ${c.review} review${report.suppressed ? `, ${report.suppressed} in baseline` : ''}.`, '');
-  if (!report.findings.length) out.push(`**${CLEAN}**`, '');
+  if (!report.findings.length) out.push(`**${cleanLine(report.suppressed)}**`, '');
 
   let n = 0;
   for (const { priority, findings } of byPriority(report)) {

@@ -1,5 +1,5 @@
 import { FAMILY_NAMES, PRIORITY_NAMES, type Priority, type Report, type Surface } from '../types.js';
-import { byPriority, CLEAN, counts, duration, location, NOT_A_VERDICT, splitInventory } from './common.js';
+import { byPriority, cleanLine, counts, duration, location, NOT_A_VERDICT, splitInventory } from './common.js';
 
 /** Options for {@link formatText}. */
 export interface TextOptions {
@@ -97,7 +97,7 @@ export function formatText(report: Report, options: TextOptions = {}): string {
   out.push(wrap(`Checked in part: ${partly.map((a) => `${a.id}${a.status === 'inventory-only' ? ' (inventory only)' : ''}`).join(', ')}.`, width, '    ', '  '));
   out.push(wrap(`Not assessed: ${[...not.map((a) => `${a.id} ${a.title} (${a.short ?? a.how})`), ...report.coverage.notAssessed.filter((n) => n.what !== 'malware').map((n) => n.what)].join(', ')}.`, width, '    ', '  '));
   for (const note of report.notes) out.push(wrap(`Note: ${note}`, width, '    ', '  '));
-  out.push('', report.findings.length ? dim(NOT_A_VERDICT) : bold(CLEAN));
+  out.push('', report.findings.length ? dim(NOT_A_VERDICT) : bold(cleanLine(report.suppressed)));
   out.push(dim(`${report.tool.name} ${report.tool.version} · ${report.tool.url}`));
   return `${out.join('\n')}\n`;
 }

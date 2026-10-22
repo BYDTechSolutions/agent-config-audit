@@ -52,9 +52,10 @@ describe('cli', () => {
     const only = JSON.parse((await cli([dir, '--only', 'hidden', '--format', 'json'])).out);
     expect(new Set(only.findings.map((f: { family: string }) => f.family))).toEqual(new Set(['hidden']));
     await cli([dir, '--format', 'json', '--out', 'baseline.json'], { cwd: dir });
-    const again = await cli([dir, '--baseline', 'baseline.json', '--fail-on', 'review'.replace('review', 'should-fix')], { cwd: dir });
+    const again = await cli([dir, '--baseline', 'baseline.json', '--fail-on', 'should-fix'], { cwd: dir });
     expect(again.code).toBe(0);
     expect(again.out).toMatch(/in baseline/);
+    expect(again.out).toMatch(/No findings outside the baseline \(\d+ hidden\)/);
     // A SARIF log works as a baseline too.
     await cli([dir, '--format', 'sarif', '--out', 'b.sarif'], { cwd: dir });
     const fromSarif = JSON.parse((await cli([dir, '--baseline', 'b.sarif', '--format', 'json'], { cwd: dir })).out);

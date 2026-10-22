@@ -269,7 +269,10 @@ function describeNew(e: LockEntry): string {
     case 'helper':
       return `runs ${q(e.command)}`;
     case 'skill':
-      return `${Object.keys((e.files as Record<string, string>) ?? {}).length} file(s)${e.allowedTools ? `, allowed-tools ${q(e.allowedTools)}` : ''}`;
+      {
+        const n = Object.keys((e.files as Record<string, string>) ?? {}).length;
+        return `${n} file${n === 1 ? '' : 's'}${e.allowedTools ? `, allowed-tools ${q(e.allowedTools)}` : ''}`;
+      }
     case 'env':
     case 'setting':
       return `= ${q(e.value)}`;
