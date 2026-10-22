@@ -68,13 +68,15 @@ export function textChecks(model: Model, emit: Emit): void {
       if (!rs.length) continue;
       const rule = kind === 'bidi' ? 'hidden/bidi-control' : kind === 'tag' ? 'hidden/tag-characters' : 'hidden/invisible-char';
       const count = rs.reduce((n, r) => n + r.codePoints.length, 0);
-      const details = rs.slice(0, 10).map((r) => {
-        const line = at(r.index);
-        const lineText = text.split('\n')[line - 1] ?? '';
-        const decoded = kind === 'tag' ? decodeTags(r.codePoints) : '';
-        return `line ${line}: ${describeRun(r)}${decoded ? ` — spells "${safe(decoded, 100)}"` : ''} in ${code(lineText, 100)}`;
+      const byLine = new Map<number, typeof rs>();
+      for (const r of rs) byLine.set(at(r.index), [...(byLine.get(at(r.index)) ?? []), r]);
+      const allLines = text.split('\n');
+      const details = [...byLine].slice(0, 10).map(([line, lrs]) => {
+        const decoded = kind === 'tag' ? lrs.map((r) => decodeTags(r.codePoints)).join('') : '';
+        const codes = describeRun({ kind, index: 0, codePoints: lrs.flatMap((r) => r.codePoints) });
+        return `line ${line}: ${codes}${decoded ? ` — spells "${safe(decoded, 100)}"` : ''} in ${code(allLines[line - 1] ?? '', 100)}`;
       });
-      if (rs.length > 10) details.push(`… and ${rs.length - 10} more`);
+      if (byLine.size > 10) details.push(`… and ${byLine.size - 10} more lines`);
       emit(rule, { file: f.path, line: at((rs[0] as { index: number }).index), title: `${count} ${kind === 'bidi' ? 'bidirectional control' : kind === 'tag' ? 'invisible tag' : 'invisible'} character${count === 1 ? '' : 's'} in ${f.path}`, observed: `${describeRun(rs[0] as (typeof rs)[number])} first at line ${at((rs[0] as { index: number }).index)}`, evidence: kind, details });
     }
 
@@ -90,7 +92,7 @@ export function textChecks(model: Model, emit: Emit): void {
 
     // Base64 blobs (data URIs for images and fonts are left alone).
     if (!/\.svg$/i.test(f.path)) {
-      const blobs = [...text.matchAll(/(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/]{200,}={0,2}(?![A-Za-z0-9+/=_-])/g)].filter((m) => !/data:(?:image|font)\/[\w.+-]+;base64,$/.test(text.slice(Math.max(0, (m.index ?? 0) - 60), m.index)));
+      const blobs = [...text.matchAll(/(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/]{200,}={0,2}(?![A-Za-z0-9+/=_-])/g)].filter((m) => new Set(m[0]).size >= 24 && /[A-Z]/.test(m[0]) && /[a-z]/.test(m[0]) && /\d/.test(m[0]) && !/data:(?:image|font)\/[\w.+-]+;base64,$/.test(text.slice(Math.max(0, (m.index ?? 0) - 60), m.index)));
       if (blobs.length) {
         const first = blobs[0] as RegExpMatchArray;
         let decoded = '';

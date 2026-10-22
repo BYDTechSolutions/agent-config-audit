@@ -365,7 +365,27 @@ export function compareLocks(before: Lockfile, after: Lockfile): LockDiff {
       changes.push({ type: 'changed', key, kind: b.kind, message: `${label(b).replace(/^./, (c) => c.toUpperCase())} ${first}`, ...(rest.length ? { details: rest } : {}) });
     }
   }
-  return { changes, clean: changes.length === 0 };
+  // A config file's "content changed" says nothing new when an entry parsed from it already explains the change.
+  const explained = new Set(changes.filter((c) => c.kind !== 'file').map((c) => (after.entries[c.key] ?? before.entries[c.key])?.path));
+  const kept = changes.filter((c) => !(c.kind === 'file' && c.type === 'changed' && !c.details?.length && explained.has(after.entries[c.key]?.path)));
+  return { changes: kept, clean: kept.length === 0 };
+}
+
+/** `3 MCP servers`, `1 file`: for summaries. */
+export function countKinds(lock: Lockfile): string {
+  const names: Record<LockEntry['kind'], [string, string]> = {
+    file: ['file', 'files'],
+    skill: ['skill', 'skills'],
+    hook: ['hook', 'hooks'],
+    helper: ['helper command', 'helper commands'],
+    'mcp-server': ['MCP server', 'MCP servers'],
+    env: ['env variable', 'env variables'],
+    setting: ['setting', 'settings'],
+    'plugin-source': ['plugin source', 'plugin sources'],
+  };
+  const counts = new Map<LockEntry['kind'], number>();
+  for (const e of Object.values(lock.entries)) counts.set(e.kind, (counts.get(e.kind) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${names[k][n === 1 ? 0 : 1]}`).join(', ');
 }
 
 /** Compares a lockfile with the repository in `dir` today. */

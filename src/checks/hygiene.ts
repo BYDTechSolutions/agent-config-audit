@@ -90,9 +90,10 @@ export function hygieneChecks(model: Model, emit: Emit): void {
     else if (chain.length > 1 && total > 32_768) emit('hygiene/agents-md-size', { file: f.path, title: `${f.path} and the AGENTS.md files above it total ${(total / 1024).toFixed(1)} KiB`, observed: `${chain.map((x) => x.path).join(' + ')} = ${total.toLocaleString('en-US')} bytes; Codex stops adding files at 32 KiB`, evidence: 'chain' });
   }
 
-  // Claude Code reads AGENTS.md only when no CLAUDE.md / .claude/CLAUDE.md / CLAUDE.local.md is in that directory or above.
+  // Claude Code skips an AGENTS.md when its directory has a CLAUDE.md, .claude/CLAUDE.md or CLAUDE.local.md.
+  // (Files further up count too at session start; only the same directory is checked here, where the docs leave no doubt.)
   for (const f of agents) {
-    const dirs = upward(dirOf(f.path));
+    const dirs = [dirOf(f.path)];
     const claudeMd = dirs.flatMap((d) => [join(d, 'CLAUDE.md'), join(d, '.claude/CLAUDE.md')]).filter((p) => model.paths.has(p));
     const local = dirs.map((d) => join(d, 'CLAUDE.local.md')).filter((p) => model.paths.has(p));
     if (!claudeMd.length && !local.length) continue;

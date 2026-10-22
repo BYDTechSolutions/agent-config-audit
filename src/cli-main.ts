@@ -7,7 +7,7 @@ import { extname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { auditRepo } from './audit.js';
 import { AuditError } from './errors.js';
-import { compareLocks, createLock, formatDiff, formatLock, LOCKFILE_NAME, parseLock, type Lockfile } from './lock.js';
+import { compareLocks, countKinds, createLock, formatDiff, formatLock, LOCKFILE_NAME, parseLock, type Lockfile } from './lock.js';
 import { counts } from './render/common.js';
 import { FORMATS, formatReport, type ReportFormat } from './render/index.js';
 import { sarifTags } from './render/sarif.js';
@@ -202,9 +202,7 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
         previous = null;
       }
       const n = Object.keys(lock.entries).length;
-      const kinds = new Map<string, number>();
-      for (const e of Object.values(lock.entries)) kinds.set(e.kind, (kinds.get(e.kind) ?? 0) + 1);
-      const breakdown = [...kinds].map(([k, v]) => `${v} ${k}`).join(', ');
+      const breakdown = countKinds(lock);
       const diff = previous ? compareLocks(previous, lock) : null;
       if (diff?.clean) {
         io.stdout(`${LOCKFILE_NAME} is up to date (${n} entries).\n`);

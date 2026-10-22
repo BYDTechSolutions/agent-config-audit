@@ -5,7 +5,7 @@
  * never executes, imports or fetches anything it finds.
  */
 export { auditRepo } from './audit.js';
-export { compareLocks, createLock, diffLock, formatDiff, formatLock, LOCKFILE_NAME, parseLock, stableStringify } from './lock.js';
+export { compareLocks, countKinds, createLock, diffLock, formatDiff, formatLock, LOCKFILE_NAME, parseLock, stableStringify } from './lock.js';
 export type { LockChange, LockDiff, LockEntry, Lockfile } from './lock.js';
 export { FORMATS, formatMarkdown, formatReport, formatSarif, formatText } from './render/index.js';
 export type { ReportFormat, TextOptions } from './render/index.js';
