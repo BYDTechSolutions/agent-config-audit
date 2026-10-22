@@ -1,0 +1,10 @@
+# Add to .pre-commit-config.yaml (https://pre-commit.com).
+repos:
+  - repo: local
+    hooks:
+      - id: agent-config-audit
+        name: agent-config-audit
+        entry: npx -y @bydtech/agent-config-audit@0.1.0 --fail-on fix-now
+        language: system
+        pass_filenames: false
+        always_run: true
