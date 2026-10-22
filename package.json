@@ -1,0 +1,64 @@
+{
+  "name": "@bydtech/agent-config-audit",
+  "version": "0.1.0",
+  "description": "List everything in a repo that an AI coding agent will load or run (hooks, MCP servers, skills, plugins, rules files, env overrides), flag what is risky against the OWASP Agentic Skills Top 10, and lock it so later changes show up in review. Offline; never runs what it finds.",
+  "keywords": [
+    "ai-agents",
+    "agent-security",
+    "claude-code",
+    "mcp",
+    "cursor",
+    "copilot",
+    "agents-md",
+    "agent-skills",
+    "owasp",
+    "sarif",
+    "lockfile",
+    "static-analysis",
+    "cli"
+  ],
+  "homepage": "https://github.com/BYDTechSolutions/agent-config-audit#readme",
+  "bugs": {
+    "url": "https://github.com/BYDTechSolutions/agent-config-audit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BYDTechSolutions/agent-config-audit.git"
+  },
+  "license": "MIT",
+  "author": "BYD Tech <sales.bydtech@gmail.com> (https://bydtech.in)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-config-audit": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
