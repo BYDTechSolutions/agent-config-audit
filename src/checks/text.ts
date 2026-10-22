@@ -138,8 +138,21 @@ export function textChecks(model: Model, emit: Emit): void {
     for (const p of fm.protoKeys) emit('hidden/proto-key', { file: path, line: p.line, key: p.key, title: `Key ${code(p.key, 20)} in frontmatter of ${path}`, observed: `frontmatter key ${code(p.key, 20)}`, evidence: `fm:${p.key}` });
   }
 
-  // Command strings in configs: hooks, helpers, MCP launches.
+  // Command strings in configs: hooks, helpers, MCP launches. JSON escapes such as "\u202e"
+  // decode to the real character here, so hidden characters are checked after parsing too.
   const none = () => 1;
+  const hiddenIn = (file: string, line: number | undefined, key: string, value: string) => {
+    for (const kind of ['bidi', 'tag', 'invisible'] as const) {
+      const rs = findHidden(value).filter((r) => r.kind === kind);
+      if (!rs.length) continue;
+      const rule = kind === 'bidi' ? 'hidden/bidi-control' : kind === 'tag' ? 'hidden/tag-characters' : 'hidden/invisible-char';
+      const decoded = kind === 'tag' ? rs.map((r) => decodeTags(r.codePoints)).join('') : '';
+      emit(rule, { file, line, key, title: `Hidden characters in ${key}`, observed: `${describeRun({ kind, index: 0, codePoints: rs.flatMap((r) => r.codePoints) })} in ${code(value, 100)}${decoded ? ` — spells "${safe(decoded, 100)}"` : ''}`, evidence: `${key}:${kind}` });
+    }
+  };
+  for (const h of model.hooks) if (h.command) hiddenIn(h.file, h.line, h.key, h.command);
+  for (const h of model.helpers) hiddenIn(h.file, h.line, h.key, h.command);
+  for (const s of model.servers) hiddenIn(s.file, s.line, formatPath(s.path), [s.command ?? '', ...s.args, s.url ?? ''].join(' '));
   for (const h of model.hooks) {
     if (!h.command && !h.url) continue;
     const ctx = { line: h.line, key: h.key, what: `${h.tool} hook ${h.event}` };

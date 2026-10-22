@@ -205,6 +205,13 @@ describe('instruction files and context hygiene', async () => {
     expect(find(report, 'hidden/bidi-control')[0]?.file).toBe('.github/copilot-instructions.md');
   });
 
+  it('finds hidden characters written as JSON escapes in a hook command', async () => {
+    const d = await materialize({ '.claude/settings.json': '{ "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "echo ok \\u202e hcae" } ] } ] } }' });
+    const r = await auditRepo(d);
+    expect(find(r, 'hidden/bidi-control')[0]).toMatchObject({ key: 'hooks.Stop[0].hooks[0].command' });
+    expect(find(r, 'hidden/bidi-control')[0]?.observed).toContain('<U+202E>');
+  });
+
   it('does not mistake long plain text for base64', () => {
     expect(find(report, 'hidden/base64-blob')).toEqual([]);
   });
