@@ -14,7 +14,7 @@ export function buildInventory(model: Model): Surface[] {
   const out: Surface[] = [];
   for (const s of model.settings) {
     const keys = Object.keys(s.json);
-    out.push({ kind: 'settings', path: s.file, name: s.file.slice(s.file.lastIndexOf('/') + 1), tools: ['Claude Code'], runs: model.hooks.some((h) => h.file === s.file) || model.helpers.some((h) => h.file === s.file), summary: safe(`keys: ${keys.join(', ') || '(none)'}`, 200) });
+    out.push({ kind: 'settings', path: s.file, name: s.file.slice(s.file.lastIndexOf('/') + 1), tools: ['Claude Code'], runs: false, summary: safe(`keys: ${keys.join(', ') || '(none)'}`, 200) });
     if (isObject(s.json.env)) {
       for (const [k, v] of Object.entries(s.json.env)) {
         out.push({ kind: 'env', path: s.file, name: k, tools: ['Claude Code'], runs: false, summary: `${k} = ${SECRET_KEY.test(k) ? redact(String(v)) : code(String(v), 80)}` });
@@ -60,6 +60,11 @@ export function buildInventory(model: Model): Surface[] {
   return out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }
 
+const SHORT: Record<string, string> = {
+  AST06: 'a property of where the agent runs',
+  AST08: 'archives, bytecode and text in images are not opened',
+};
+
 /** What this version can and cannot say, per OWASP AST risk, plus the files it could not read. */
 export function buildCoverage(model: Model): Coverage {
   const how: Record<string, [Coverage['ast'][number]['status'], string]> = {
@@ -75,14 +80,17 @@ export function buildCoverage(model: Model): Coverage {
     AST10: ['partly-checked', 'Frontmatter fields no tool documents are flagged; metadata lost when a skill is ported is not simulated.'],
   };
   return {
-    ast: Object.entries(AST).map(([id, a]) => ({ id, title: a.title, status: (how[id] as [Coverage['ast'][number]['status'], string])[0], how: (how[id] as [Coverage['ast'][number]['status'], string])[1] })),
+    ast: Object.entries(AST).map(([id, a]) => {
+      const [status, text] = how[id] as [Coverage['ast'][number]['status'], string];
+      return { id, title: a.title, status, how: text, ...(SHORT[id] ? { short: SHORT[id] } : {}) };
+    }),
     notAssessed: [
-      'Malware: this is not a malware check. An empty report is not a clean bill of health.',
-      'What MCP servers actually do: their tool descriptions need the server running, and this tool never starts one.',
-      'Runtime behavior of hooks, scripts and servers; nothing found is executed.',
-      'Content behind URLs: nothing is fetched.',
-      'Config outside this directory: user and machine settings (~/.claude, ~/.cursor, ~/.codex, managed settings), IDE settings, and MCP servers set in a hosting service (for example GitHub Copilot cloud agent repository settings).',
-      'Dependencies that skill scripts install (package.json, requirements.txt) and their install scripts.',
+      { what: 'malware', why: 'This is not a malware check. An empty report is not a clean bill of health.' },
+      { what: 'what MCP servers do', why: 'Their tool descriptions need the server running, and this tool never starts one.' },
+      { what: 'runtime behavior', why: 'Nothing found is executed, so what hooks, scripts and servers do when they run is not observed.' },
+      { what: 'content behind URLs', why: 'Nothing is fetched.' },
+      { what: 'config outside this directory', why: 'User and machine settings (~/.claude, ~/.cursor, ~/.codex, managed settings), IDE settings, and MCP servers set in a hosting service (for example GitHub Copilot cloud agent repository settings).' },
+      { what: 'dependencies of skill scripts', why: 'Packages that skill scripts install (package.json, requirements.txt) and their install scripts.' },
     ],
     unread: model.files.filter((f) => f.unread).map((f) => f.unread as NonNullable<typeof f.unread>),
   };

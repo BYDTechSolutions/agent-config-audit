@@ -113,8 +113,13 @@ export function hygieneChecks(model: Model, emit: Emit): void {
   // Dead references and directory trees in instruction files.
   const basenames = new Set([...model.paths].map((p) => p.slice(p.lastIndexOf('/') + 1)));
   const exists = (p: string) => model.paths.has(p) || model.dirs.has(p);
-  const allPaths = [...model.paths];
-  const allDirs = [...model.dirs];
+  const baseOf = (x: string) => x.slice(x.lastIndexOf('/') + 1);
+  const byBase = new Map<string, string[]>();
+  for (const x of [...model.paths, ...model.dirs]) {
+    const list = byBase.get(baseOf(x));
+    if (list) list.push(x);
+    else byBase.set(baseOf(x), [x]);
+  }
   for (const f of model.files) {
     if (f.text === undefined || !INSTRUCTION_ROLES.has(f.role) || !/\.(?:md|mdc)$/i.test(f.path)) continue;
     const dir = dirOf(f.path);
@@ -136,7 +141,7 @@ export function hygieneChecks(model: Model, emit: Emit): void {
       const candidates = [norm(dir), norm('')];
       if (candidates.some((c) => MODULE_EXT.some((e) => exists(c + e)))) continue;
       // Paths written relative to some sub-project ("`src/lib/copy`" in a monorepo's notes): any file that ends with it counts.
-      if (allPaths.some((x) => MODULE_EXT.some((e) => x.endsWith(`/${p}${e}`)) || allDirs.some((d) => d.endsWith(`/${p}`)))) continue;
+      if (MODULE_EXT.some((e) => (byBase.get(baseOf(`${p}${e}`)) ?? []).some((x) => x.endsWith(`/${p}${e}`))) || (byBase.get(baseOf(p)) ?? []).some((d) => d.endsWith(`/${p}`))) continue;
       if (r.kind === 'code' && p.startsWith('..')) continue;
       if (r.kind === 'code') {
         if (!p.includes('/')) {

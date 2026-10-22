@@ -43,7 +43,8 @@ describe('Claude Code settings', async () => {
 
   it('lists every hook and scans hook commands for download-and-run', () => {
     const hooks = find(report, 'exec/hook-command');
-    expect(hooks.map((h) => h.key)).toEqual(['hooks.PreToolUse[0].hooks[0].command', 'hooks.PostToolUse[0].hooks[0].command']);
+    // The PreToolUse hook is reported once, by the stronger download-and-run finding on the same line.
+    expect(hooks.map((h) => h.key)).toEqual(['hooks.PostToolUse[0].hooks[0].command']);
     expect(find(report, 'exec/hook-http')[0]?.observed).toContain('https://hooks.example.net/stop');
     const dl = find(report, 'prose/download-exec')[0] as Finding;
     expect(dl).toMatchObject({ file: '.claude/settings.json', priority: 'fix-now' });
@@ -226,7 +227,7 @@ describe('a clean repo', async () => {
     expect(report.inventory.map((s) => s.kind).sort()).toEqual(['instructions', 'mcp-server']);
     expect(report.coverage.ast.find((a) => a.id === 'AST06')?.status).toBe('not-assessed');
     expect(report.coverage.ast.find((a) => a.id === 'AST08')?.status).toBe('not-assessed');
-    expect(report.coverage.notAssessed.join(' ')).toMatch(/not a malware check/);
+    expect(report.coverage.notAssessed.map((n) => n.why).join(' ')).toMatch(/not a malware check/);
   });
 });
 

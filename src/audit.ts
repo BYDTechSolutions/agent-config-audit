@@ -39,10 +39,14 @@ export function runChecks(model: Model): Finding[] {
   // One finding per fingerprint; a credential already reported by a config rule is not repeated as a generic one.
   const seen = new Set<string>();
   const configSecretLines = new Set(findings.filter((f) => f.id === 'mcp/inline-secret' || f.id === 'secrets/env-literal').map((f) => `${f.file}:${f.line}`));
+  // A "this runs a command" review item adds nothing when a stronger finding already points at the same line.
+  const strongLines = new Set(findings.filter((f) => f.priority !== 'review').map((f) => `${f.file}:${f.line}`));
+  const RUNS = new Set(['exec/hook-command', 'exec/statusline-command', 'exec/inline-shell']);
   const out = findings.filter((f) => {
     if (seen.has(f.fingerprint)) return false;
     seen.add(f.fingerprint);
     if (f.id === 'secrets/hardcoded' && configSecretLines.has(`${f.file}:${f.line}`)) return false;
+    if (RUNS.has(f.id) && f.line && strongLines.has(`${f.file}:${f.line}`)) return false;
     return true;
   });
   const pr = (f: Finding) => PRIORITIES.indexOf(f.priority);

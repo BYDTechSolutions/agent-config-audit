@@ -91,14 +91,12 @@ export function formatText(report: Report, options: TextOptions = {}): string {
     if (unread.length > 30) out.push(dim(`  … and ${unread.length - 30} more`));
   }
 
-  out.push('', bold('COVERAGE'));
+  out.push('', bold('COVERAGE') + dim('  (details: --format md or json)'));
   const partly = report.coverage.ast.filter((a) => a.status !== 'not-assessed');
   const not = report.coverage.ast.filter((a) => a.status === 'not-assessed');
-  out.push(wrap(`Checked in part: ${partly.map((a) => `${a.id} ${a.title}${a.status === 'inventory-only' ? ' (inventory only)' : ''}`).join(', ')}.`, width, '    ', '  '));
-  for (const a of not) out.push(wrap(`Not assessed: ${a.id} ${a.title}. ${a.how}`, width, '    ', '  '));
-  for (const s of report.coverage.notAssessed) out.push(wrap(`Not assessed: ${s}`, width, '    ', '  '));
+  out.push(wrap(`Checked in part: ${partly.map((a) => `${a.id}${a.status === 'inventory-only' ? ' (inventory only)' : ''}`).join(', ')}.`, width, '    ', '  '));
+  out.push(wrap(`Not assessed: ${[...not.map((a) => `${a.id} ${a.title} (${a.short ?? a.how})`), ...report.coverage.notAssessed.filter((n) => n.what !== 'malware').map((n) => n.what)].join(', ')}.`, width, '    ', '  '));
   for (const note of report.notes) out.push(wrap(`Note: ${note}`, width, '    ', '  '));
-
   out.push('', report.findings.length ? dim(NOT_A_VERDICT) : bold(CLEAN));
   out.push(dim(`${report.tool.name} ${report.tool.version} · ${report.tool.url}`));
   return `${out.join('\n')}\n`;

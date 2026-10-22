@@ -38,7 +38,7 @@ describe('output safety', async () => {
     expect(c).toBeGreaterThan(b);
     expect(text).toContain('WHAT AN AGENT WILL LOAD OR RUN');
     expect(text).toContain('NOT CHECKED: NEEDS HUMAN REVIEW');
-    expect(text).toContain('Not assessed: AST06 Weak Isolation');
+    expect(text).toContain('Not assessed: AST06 Weak Isolation (a property of where the agent runs)');
     expect(text).toContain('This is not a malware check.');
   });
 

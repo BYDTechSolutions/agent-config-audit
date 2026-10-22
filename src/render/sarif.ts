@@ -83,7 +83,7 @@ export function formatSarif(report: Report): string {
         properties: {
           taxonomy: AST_VERSION,
           statement: report.findings.length ? NOT_A_VERDICT : CLEAN,
-          notAssessed: [...report.coverage.ast.filter((a) => a.status === 'not-assessed').map((a) => `${a.id} ${a.title}: ${a.how}`), ...report.coverage.notAssessed],
+          notAssessed: [...report.coverage.ast.filter((a) => a.status === 'not-assessed').map((a) => `${a.id} ${a.title}: ${a.how}`), ...report.coverage.notAssessed.map((n) => `${n.what}: ${n.why}`)],
           unread: report.coverage.unread,
         },
       },

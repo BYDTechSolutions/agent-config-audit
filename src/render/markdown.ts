@@ -42,7 +42,7 @@ export function formatMarkdown(report: Report): string {
 
   out.push('## Coverage', '', '| OWASP AST | Status | How |', '|---|---|---|');
   for (const a of report.coverage.ast) out.push(`| ${a.id} ${a.title} | ${a.status.replace(/-/g, ' ')} | ${cell(a.how)} |`);
-  out.push('', ...report.coverage.notAssessed.map((s) => `- Not assessed: ${s}`), '');
+  out.push('', ...report.coverage.notAssessed.map((n) => `- **Not assessed: ${n.what}.** ${n.why}`), '');
   for (const note of report.notes) out.push(`> ${note}`, '');
   if (report.findings.length) out.push(`_${NOT_A_VERDICT}_`, '');
   out.push(`<sub>${report.tool.name} ${report.tool.version} · ${report.tool.url} · ${report.startedAt.replace(/\.\d+Z$/, 'Z')}</sub>`, '');

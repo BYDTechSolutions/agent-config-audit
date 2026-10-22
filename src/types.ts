@@ -158,13 +158,15 @@ export interface CoverageItem {
   status: 'partly-checked' | 'inventory-only' | 'not-assessed';
   /** How, or why not. */
   how: string;
+  /** For `not-assessed`: why, in a few words. */
+  short?: string;
 }
 
 /** The coverage section every report carries. */
 export interface Coverage {
   ast: CoverageItem[];
-  /** Things no rule here looks at. */
-  notAssessed: string[];
+  /** Things no rule here looks at: a short name, and why. */
+  notAssessed: { what: string; why: string }[];
   /** Files in agent surfaces that were not read. */
   unread: Unread[];
 }

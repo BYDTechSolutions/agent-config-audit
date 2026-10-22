@@ -212,7 +212,8 @@ export function stableStringify(value: unknown, indent?: number): string {
 
 /** The lockfile as written to disk: sorted, two-space JSON with a final newline. */
 export function formatLock(lock: Lockfile): string {
-  return `${stableStringify(lock, 2)}\n`;
+  const ordered = { lockfileVersion: lock.lockfileVersion, generator: lock.generator, entries: JSON.parse(stableStringify(lock.entries)) as unknown };
+  return `${JSON.stringify(ordered, null, 2)}\n`;
 }
 
 /** Parses and validates a lockfile's text. */
