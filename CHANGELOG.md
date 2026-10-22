@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-21
+
+### Changed
+
+- Published from GitHub Actions through npm trusted publishing, with a
+  provenance attestation linking the package to this repository. No code changes.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added
@@ -18,5 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API: `auditRepo`, `createLock`, `diffLock`, `compareLocks`, `formatReport`, `formatDiff`, the rule list and the sources.
 - Never executes, imports or fetches anything it finds; no network; no runtime dependencies. Secrets are redacted and invisible characters escaped in every output.
 
-[Unreleased]: https://github.com/BYDTechSolutions/agent-config-audit/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/BYDTechSolutions/agent-config-audit/releases/tag/v0.1.0
+[Unreleased]: https://github.com/BYDTechSolutions/agent-config-audit/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/BYDTechSolutions/agent-config-audit/releases/tag/v0.1.1
+[0.1.0]: https://github.com/BYDTechSolutions/agent-config-audit/tree/8328af2c0ceed448a358a894d099be48906eb0a5

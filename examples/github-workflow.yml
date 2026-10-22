@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
       - name: Audit agent config
-        run: npx -y @bydtech/agent-config-audit@0.1.0 --format sarif --out agent-config.sarif
+        run: npx -y @bydtech/agent-config-audit@0.1.1 --format sarif --out agent-config.sarif
       - name: Upload to code scanning
         if: always()
         uses: github/codeql-action/upload-sarif@v4
@@ -25,7 +25,7 @@ jobs:
           sarif_file: agent-config.sarif
           category: agent-config-audit
       - name: Fail on "Fix now"
-        run: npx -y @bydtech/agent-config-audit@0.1.0 --fail-on fix-now
+        run: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
       # Needs a committed agent-config.lock (npx @bydtech/agent-config-audit lock).
       - name: Fail if agent config changed since the approved lock
-        run: npx -y @bydtech/agent-config-audit@0.1.0 diff
+        run: npx -y @bydtech/agent-config-audit@0.1.1 diff

@@ -100,7 +100,7 @@ jobs:
         with:
           node-version: '22'
       - name: Audit agent config
-        run: npx -y @bydtech/agent-config-audit@0.1.0 --format sarif --out agent-config.sarif
+        run: npx -y @bydtech/agent-config-audit@0.1.1 --format sarif --out agent-config.sarif
       - name: Upload to code scanning
         if: always()
         uses: github/codeql-action/upload-sarif@v4
@@ -108,9 +108,9 @@ jobs:
           sarif_file: agent-config.sarif
           category: agent-config-audit
       - name: Fail on "Fix now"
-        run: npx -y @bydtech/agent-config-audit@0.1.0 --fail-on fix-now
+        run: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
       - name: Fail if agent config changed since the approved lock
-        run: npx -y @bydtech/agent-config-audit@0.1.0 diff
+        run: npx -y @bydtech/agent-config-audit@0.1.1 diff
 ```
 
 The `diff` step needs a committed `agent-config.lock` (see [Lock and diff](#lock-and-diff)); leave it out until you have one. The same file is in [`examples/github-workflow.yml`](examples/github-workflow.yml).
@@ -125,7 +125,7 @@ repos:
     hooks:
       - id: agent-config-audit
         name: agent-config-audit
-        entry: npx -y @bydtech/agent-config-audit@0.1.0 --fail-on fix-now
+        entry: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
         language: system
         pass_filenames: false
         always_run: true
@@ -134,7 +134,7 @@ repos:
 Or as a plain git hook, without pre-commit:
 
 ```sh
-printf '#!/bin/sh\nexec npx -y @bydtech/agent-config-audit@0.1.0 --fail-on fix-now\n' > .git/hooks/pre-commit
+printf '#!/bin/sh\nexec npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now\n' > .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 
