@@ -7,25 +7,24 @@ on:
     branches: [main]
 permissions:
   contents: read
-  security-events: write
+  security-events: write # only for the SARIF upload; remove both if you skip it
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - name: Audit agent config
-        run: npx -y @bydtech/agent-config-audit@0.1.1 --format sarif --out agent-config.sarif
+        uses: BYDTechSolutions/agent-config-audit@v0
+        # with:
+        #   fail-on: should-fix   # stricter; none never fails
       - name: Upload to code scanning
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: agent-config.sarif
+          sarif_file: agent-config-audit.sarif
           category: agent-config-audit
-      - name: Fail on "Fix now"
-        run: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
       # Needs a committed agent-config.lock (npx @bydtech/agent-config-audit lock).
       - name: Fail if agent config changed since the approved lock
-        run: npx -y @bydtech/agent-config-audit@0.1.1 diff
+        uses: BYDTechSolutions/agent-config-audit@v0
+        with:
+          command: diff

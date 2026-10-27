@@ -79,7 +79,7 @@ Findings are leads for human review, not a verdict. This is not a malware check.
 
 ## In CI: a GitHub Action
 
-Run it before any job that lets an agent work on a pull request. It uploads the findings to code scanning, fails on anything in "Fix now", and fails when the agent config changed since the last approved `agent-config.lock`:
+Run it before any job that lets an agent work on a pull request. One step audits the repository, prints the report in the log, adds it to the job summary, writes a SARIF file, and fails the job on anything in "Fix now":
 
 ```yaml
 # .github/workflows/agent-config.yml
@@ -90,30 +90,50 @@ on:
     branches: [main]
 permissions:
   contents: read
-  security-events: write
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Audit agent config
-        run: npx -y @bydtech/agent-config-audit@0.1.1 --format sarif --out agent-config.sarif
-      - name: Upload to code scanning
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: agent-config.sarif
-          category: agent-config-audit
-      - name: Fail on "Fix now"
-        run: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
-      - name: Fail if agent config changed since the approved lock
-        run: npx -y @bydtech/agent-config-audit@0.1.1 diff
+      - uses: BYDTechSolutions/agent-config-audit@v0
 ```
 
-The `diff` step needs a committed `agent-config.lock` (see [Lock and diff](#lock-and-diff)); leave it out until you have one. The same file is in [`examples/github-workflow.yml`](examples/github-workflow.yml).
+`@v0` moves to each 0.x release; pin `@v0.1.2` to stay on one version.
+
+To fail when the agent config changed since the last approved `agent-config.lock` (see [Lock and diff](#lock-and-diff)), add a second step once the lockfile is committed:
+
+```yaml
+      - uses: BYDTechSolutions/agent-config-audit@v0
+        with:
+          command: diff
+```
+
+To see the findings as code-scanning alerts, add `security-events: write` to `permissions` and upload the SARIF file after the audit (code scanning on a private repository needs GitHub Advanced Security):
+
+```yaml
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: agent-config-audit.sarif
+          category: agent-config-audit
+```
+
+The full file is in [`examples/github-workflow.yml`](examples/github-workflow.yml).
+
+| Input | Default | What it does |
+|---|---|---|
+| `path` | `.` | the directory to audit |
+| `command` | `audit` | `audit`, or `diff` to fail when the config changed since `agent-config.lock` |
+| `fail-on` | `fix-now` | for `audit`: fail at `fix-now`, at `should-fix` or above, or `none` |
+| `sarif-file` | `agent-config-audit.sarif` | for `audit`: where to write SARIF; empty skips it |
+| `baseline` | | for `audit`: an earlier JSON or SARIF report whose findings are hidden |
+| `only` | | for `audit`: comma-separated rule families |
+| `exclude` | | comma-separated path prefixes to skip |
+| `lock` | `agent-config.lock` in `path` | for `diff`: the lockfile to compare against |
+| `args` | | any other CLI options |
+| `package` | this tag's version | the npm package to run |
+
+Outputs: `fix-now`, `should-fix` and `review` (counts), `changes` (for `diff`), `sarif-file`, `report-json` and `report-md` (paths). The action needs Node.js 20 or newer on the runner, which GitHub-hosted runners have, and runs on Linux, macOS and Windows runners. Like the CLI, it never runs anything it finds.
 
 ## Before each commit: a pre-commit hook
 
@@ -198,7 +218,7 @@ agent-config-audit diff [dir] [options]     show what changed since agent-config
 | Option | Default | What it does |
 |---|---|---|
 | `-f, --format <fmt>` | `text` | `text`, `json`, `md` or `sarif` (SARIF 2.1.0 for GitHub code scanning). `diff` accepts `text` and `json`. |
-| `-o, --out <file>` | stdout | Write the output to a file. Without `--format`, the format comes from the extension (`.json`, `.md`, `.sarif`). |
+| `-o, --out <file>` | stdout | Write the output to a file. Without `--format`, the format comes from the extension (`.json`, `.md`, `.sarif`, anything else is text). Repeat it to write several formats from one run. |
 | `--fail-on <level>` | off | Exit 1 when any finding is at `fix-now`, or at `should-fix` or above. |
 | `--baseline <file>` | none | Hide findings already in this file: an earlier `--format json` report or `--format sarif` log. They are counted as "in baseline". |
 | `--only <families>` | all | Comma-separated families: `exec`, `mcp`, `secrets`, `hidden`, `prose`, `refs`, `skill`, `unscannable`, `hygiene`. |

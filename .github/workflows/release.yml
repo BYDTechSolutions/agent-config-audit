@@ -1,7 +1,7 @@
 name: Release
 on:
   push:
-    tags: ['v*']
+    tags: ['v*.*.*']
 permissions:
   id-token: write
   contents: read
@@ -18,3 +18,18 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm publish
+
+  # Moves the major tag (v0, v1, ...) to this release, so
+  # `uses: BYDTechSolutions/agent-config-audit@v0` gets fixes. The tag pattern
+  # above ignores it, so this does not publish again.
+  major-tag:
+    needs: npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          major="${GITHUB_REF_NAME%%.*}"
+          git tag -f "$major"
+          git push -f origin "refs/tags/$major"

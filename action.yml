@@ -1,0 +1,79 @@
+name: 'BYD agent-config-audit'
+description: 'Audit the AI agent config in your repo (hooks, MCP servers, skills, rules) against the OWASP Agentic Skills Top 10.'
+author: 'BYD Tech'
+branding:
+  icon: 'lock'
+  color: 'purple'
+
+inputs:
+  path:
+    description: 'The directory to audit, relative to the workspace.'
+    default: '.'
+  command:
+    description: 'audit (list and flag the agent config) or diff (fail when it changed since agent-config.lock).'
+    default: 'audit'
+  fail-on:
+    description: 'For audit: fail the step when a finding is at this level or above: fix-now, should-fix, or none.'
+    default: 'fix-now'
+  sarif-file:
+    description: 'For audit: where to write the SARIF report for GitHub code scanning. Empty skips it.'
+    default: 'agent-config-audit.sarif'
+  baseline:
+    description: 'For audit: an earlier JSON or SARIF report. Findings already in it are hidden.'
+    default: ''
+  only:
+    description: 'For audit: comma-separated rule families: exec, mcp, secrets, hidden, prose, refs, skill, unscannable, hygiene.'
+    default: ''
+  exclude:
+    description: 'Comma-separated path prefixes to skip (.git and node_modules always are).'
+    default: ''
+  lock:
+    description: 'For diff: the lockfile to compare against. Defaults to agent-config.lock in path.'
+    default: ''
+  args:
+    description: 'Extra command-line options, for example "--max-file-bytes 2097152".'
+    default: ''
+  package:
+    description: 'The npm package to run. Defaults to the @bydtech/agent-config-audit version that matches this action''s tag.'
+    default: ''
+
+outputs:
+  fix-now:
+    description: 'For audit: number of "Fix now" findings.'
+    value: ${{ steps.run.outputs.fix-now }}
+  should-fix:
+    description: 'For audit: number of "Should fix" findings.'
+    value: ${{ steps.run.outputs.should-fix }}
+  review:
+    description: 'For audit: number of "Review" findings.'
+    value: ${{ steps.run.outputs.review }}
+  changes:
+    description: 'For diff: number of changes since the lockfile.'
+    value: ${{ steps.run.outputs.changes }}
+  sarif-file:
+    description: 'For audit: path of the SARIF report, if one was written.'
+    value: ${{ steps.run.outputs.sarif-file }}
+  report-json:
+    description: 'Path of the JSON report (audit) or diff (diff).'
+    value: ${{ steps.run.outputs.report-json }}
+  report-md:
+    description: 'For audit: path of the Markdown report (also added to the job summary).'
+    value: ${{ steps.run.outputs.report-md }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: run
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/action/run.sh"
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_ONLY: ${{ inputs.only }}
+        INPUT_EXCLUDE: ${{ inputs.exclude }}
+        INPUT_LOCK: ${{ inputs.lock }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_PACKAGE: ${{ inputs.package }}
