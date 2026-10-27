@@ -1,6 +1,6 @@
 {
   "name": "@bydtech/agent-config-audit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "List everything in a repo that an AI coding agent will load or run (hooks, MCP servers, skills, plugins, rules files, env overrides), flag what is risky against the OWASP Agentic Skills Top 10, and lock it so later changes show up in review. Offline; never runs what it finds.",
   "keywords": [
     "ai-agents",

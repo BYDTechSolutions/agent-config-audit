@@ -145,7 +145,7 @@ repos:
     hooks:
       - id: agent-config-audit
         name: agent-config-audit
-        entry: npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now
+        entry: npx -y @bydtech/agent-config-audit@0.1.2 --fail-on fix-now
         language: system
         pass_filenames: false
         always_run: true
@@ -154,7 +154,7 @@ repos:
 Or as a plain git hook, without pre-commit:
 
 ```sh
-printf '#!/bin/sh\nexec npx -y @bydtech/agent-config-audit@0.1.1 --fail-on fix-now\n' > .git/hooks/pre-commit
+printf '#!/bin/sh\nexec npx -y @bydtech/agent-config-audit@0.1.2 --fail-on fix-now\n' > .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 
