@@ -47,6 +47,23 @@ describe('cli', () => {
     expect(JSON.parse(j.out).findings.length).toBeGreaterThan(0);
   });
 
+  it('several --out files write several formats from one audit, and --fail-on still applies', async () => {
+    const dir = await materialize(mcpRepo());
+    const r = await cli([dir, '-o', 'r.txt', '-o', 'r.md', '-o', 'r.sarif', '-o', 'r.json', '--fail-on', 'fix-now'], { cwd: dir });
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/Wrote text report to .*r\.txt/);
+    expect(r.out).toMatch(/Wrote md report to .*r\.md/);
+    const read = (f: string) => readFile(join(dir, f), 'utf8');
+    expect(await read('r.txt')).toContain('Agent config audit');
+    expect(await read('r.txt')).not.toContain('\u001b[');
+    expect(await read('r.md')).toMatch(/^# /m);
+    expect(JSON.parse(await read('r.sarif')).version).toBe('2.1.0');
+    expect(JSON.parse(await read('r.json')).findings.length).toBeGreaterThan(0);
+    const bad = await cli([dir, '-f', 'json', '-o', 'a.json', '-o', 'b.md'], { cwd: dir });
+    expect(bad.code).toBe(2);
+    expect(bad.err).toContain('--format works with one --out');
+  });
+
   it('--only and --baseline', async () => {
     const dir = await materialize({ ...mcpRepo(), ...skillsRepo() });
     const only = JSON.parse((await cli([dir, '--only', 'hidden', '--format', 'json'])).out);

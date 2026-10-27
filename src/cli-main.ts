@@ -47,7 +47,8 @@ Examples:
 
 Options:
   -f, --format <fmt>       text (default), json, md or sarif
-  -o, --out <file>         write the output to a file (format taken from .json/.md/.sarif)
+  -o, --out <file>         write the output to a file, format from .json/.md/.sarif (anything
+                           else is text); repeat to write several formats at once
       --fail-on <level>    exit 1 if any finding is at this level or above: fix-now or should-fix
       --baseline <file>    hide findings already in this file (an earlier --format json or sarif output)
       --only <families>    comma-separated: ${FAMILIES.join(', ')}
@@ -90,7 +91,7 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
       strict: true,
       options: {
         format: { type: 'string', short: 'f' },
-        out: { type: 'string', short: 'o' },
+        out: { type: 'string', short: 'o', multiple: true },
         'fail-on': { type: 'string' },
         baseline: { type: 'string' },
         only: { type: 'string' },
@@ -122,31 +123,37 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
     return 0;
   }
 
+  const outs = values.out ?? [];
   let format: ReportFormat = 'text';
   if (values.format) {
     if (!FORMATS.includes(values.format as ReportFormat)) return usage(`--format must be one of ${FORMATS.join(', ')}.`);
+    if (outs.length > 1) return usage('--format works with one --out. With several, each file\'s extension picks its format (.json, .md, .sarif, anything else is text).');
     format = values.format as ReportFormat;
-  } else if (values.out) {
-    const ext = extname(values.out).toLowerCase();
-    format = ext === '.json' ? 'json' : ext === '.md' || ext === '.markdown' ? 'md' : ext === '.sarif' ? 'sarif' : 'text';
+  } else if (outs.length === 1) {
+    format = formatFromExtension(outs[0] as string);
   }
-  const color = format === 'text' && !values.out && io.stdoutIsTTY && !values['no-color'] && !io.env.NO_COLOR;
+  const formatOf = (file: string): ReportFormat => (values.format ? format : formatFromExtension(file));
+  const color = format === 'text' && !outs.length && io.stdoutIsTTY && !values['no-color'] && !io.env.NO_COLOR;
   const cwd = io.cwd ?? process.cwd();
   const read = io.readFile ?? ((p: string) => readFile(p, 'utf8'));
   const write = io.writeFile ?? ((p: string, d: string) => writeFile(p, d, 'utf8'));
-  const emit = async (text: string, summary: string): Promise<boolean> => {
-    if (!values.out) {
-      io.stdout(text);
+  /** Prints the output, or writes it to each --out file in that file's format. */
+  const emit = async (render: (fmt: ReportFormat) => string, summary: string): Promise<boolean> => {
+    if (!outs.length) {
+      io.stdout(render(format));
       return true;
     }
-    const path = resolve(cwd, values.out);
-    try {
-      await write(path, text);
-    } catch (error) {
-      io.stderr(`agent-config-audit: could not write ${path}: ${(error as Error).message}\n`);
-      return false;
+    for (const file of outs) {
+      const path = resolve(cwd, file);
+      const fmt = formatOf(file);
+      try {
+        await write(path, render(fmt));
+      } catch (error) {
+        io.stderr(`agent-config-audit: could not write ${path}: ${(error as Error).message}\n`);
+        return false;
+      }
+      io.stdout(`${summary.replace('{path}', path).replace('{format}', fmt)}\n`);
     }
-    io.stdout(`${summary.replace('{path}', path)}\n`);
     return true;
   };
 
@@ -226,8 +233,8 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
       const lock = parseLock(text);
       const current = await createLock(absDir, { exclude, maxFileBytes });
       const diff = compareLocks(lock, current);
-      const out = format === 'json' ? `${JSON.stringify(diff, null, 2)}\n` : formatDiff(diff, { color });
-      if (!(await emit(out, `Wrote the diff to {path}: ${diff.changes.length} change(s).`))) return 2;
+      const render = (fmt: ReportFormat) => (fmt === 'json' ? `${JSON.stringify(diff, null, 2)}\n` : formatDiff(diff, { color }));
+      if (!(await emit(render, `Wrote the diff to {path}: ${diff.changes.length} change(s).`))) return 2;
       return diff.clean ? 0 : 1;
     }
 
@@ -243,9 +250,9 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
     }
     const report = await auditRepo(absDir, { only, exclude, baseline, maxFileBytes });
     report.root = dir;
-    const output = formatReport(report, format, { color, width: Math.min(120, io.columns ?? 100), fullInventory: values.all });
+    const render = (fmt: ReportFormat) => formatReport(report, fmt, { color, width: Math.min(120, io.columns ?? 100), fullInventory: values.all });
     const c = counts(report);
-    if (!(await emit(output, `Wrote ${format} report to {path}: ${c['fix-now']} fix now, ${c['should-fix']} should fix, ${c.review} review.`))) return 2;
+    if (!(await emit(render, `Wrote {format} report to {path}: ${c['fix-now']} fix now, ${c['should-fix']} should fix, ${c.review} review.`))) return 2;
     if (failOn) {
       const hits = report.findings.filter((f) => (FAIL_LEVELS[failOn] as Priority[]).includes(f.priority)).length;
       if (hits) {
@@ -262,4 +269,10 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
     io.stderr(`agent-config-audit: unexpected error: ${(error as Error).stack ?? error}\n`);
     return 2;
   }
+}
+
+/** The format a file name asks for: .json, .md, .sarif, anything else text. */
+function formatFromExtension(file: string): ReportFormat {
+  const ext = extname(file).toLowerCase();
+  return ext === '.json' ? 'json' : ext === '.md' || ext === '.markdown' ? 'md' : ext === '.sarif' ? 'sarif' : 'text';
 }
